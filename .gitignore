@@ -3,3 +3,4 @@ xan_nara
 __pycache__
 sqlite
 .vscode
+throwaway_tests.py

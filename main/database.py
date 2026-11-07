@@ -2,10 +2,15 @@
 from discord import Embed
 from discord.ui import View
 from aiosqlite import Connection, connect
+from typing import Any, NewType
 
 # From within project
-from system.base_view import BaseView
+from system.base_classes import BaseView, BaseTable
 from system.ids import path
+
+from nation_essentials.nation import Nation
+
+class DatabaseTable(BaseTable[Nation]): pass
 
 # Container for methods that query and modify nations within the SQLite database
 class Database():
@@ -36,6 +41,7 @@ class Database():
             list: Some sort of list
         """
         connection = await connect(path)
+        database_table = DatabaseTable()
 
         async with connection.execute("SELECT * FROM Database") as cursor:
             async for row in cursor:
@@ -45,13 +51,13 @@ class Database():
     @classmethod
     async def add_nation(cls, server_id: int, nation_name: str) -> None:
         """
-            A class method that adds a entry for a nation server in the Database table and creates
-            a new table for the nation server.
+        A class method that adds a entry for a nation server in the Database table and creates
+        a new table for the nation server.
 
-            Parameters:
-                server_id(int): The ID of the server that will be added.
-                nation_name(str): The name of the server given by the server owner upon bot joining server in DMs
-            """
+        Parameters:
+            server_id(int): The ID of the server that will be added.
+            nation_name(str): The name of the server given by the server owner upon bot joining server in DMs
+        """
         connection = await connect(path)
 
         await connection.execute(f"""INSERT INTO Database (nation_id, nation_name) 
@@ -66,13 +72,14 @@ class Database():
         # Ex: gets ElectoralSystemEnum.FPTP, then creates an FPTP() object or uses a method in
         # container class FPTP()
         await connection.execute(f"""CREATE TABLE IF NOT EXISTS Nation_{server_id}
-                                    (INTEGER election_id,
-                                     TEXT election_name
-                                     TEXT election_system
-                                     TEXT election_parameters
-                                     TEXT run_status
-                                     TEXT start_date
-                                     TEXT end_date 
+                                    (INTEGER election_id NOT NULL UNIQUE,
+                                     TEXT election_name NOT NULL,
+                                     TEXT election_system NOT NULL,
+                                     TEXT election_parameters NOT NULL,
+                                     TEXT run_status NOT NULL,
+                                     TEXT start_date,
+                                     TEXT end_date,
+                                     PRIMARY KEY("election_id") 
                                     )""")
         await connection.close()
 
