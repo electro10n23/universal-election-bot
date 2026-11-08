@@ -120,10 +120,11 @@ class DatabaseView(BaseView):
     async def create(cls):
         database_view = cls()
         await database_view.refresh_page()
-        return
+        return database_view
 
     async def refresh_page(self):
         database_table = await Database.gather_table()
+
         self.embed.clear_fields()
         self.embed.add_field(name=f"Page {self.page_number}", value="", inline=False)
 
