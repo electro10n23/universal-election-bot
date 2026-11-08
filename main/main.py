@@ -17,6 +17,8 @@ from database import Database
 
 bot = AutoShardedBot(command_prefix="!", intents=Intents.all())
 
+# When the bot joins the guild, it will ask the server owner for the name of the nation before the
+# nation is added to the database.
 @bot.event
 async def on_guild_join(guild: Guild):
     owner = cast(Member, guild.owner) # Done so line after doesn't error since it would think owner was None

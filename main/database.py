@@ -14,13 +14,26 @@ from nation_essentials.nation import Nation
 
 class DatabaseTable(BaseTable[Nation]): 
     """
-        The list representation of a table in the SQLite table "Database" for the bot. It contains
-        Nation objects which each represent a row in the table, and which attribute names correspond
-        to the names of the columns in the table
+    The list representation of a table in the SQLite table "Database" for the bot. It contains
+    Nation objects which each represent a row in the table, and which attribute names correspond
+    to the names of the columns in the table
     
-        Attributes:
-            column_names(list[str]): A list containing the names of all columns in the Database table, listed in the same order they appear in the SQLite table.
-        """
+    **How the table is set up in the SQLite database:**
+
+    ```
+    DATABASE TABLE
+    +-----------------------------------------+
+    | nation_id   |   nation_name             |
+    | (server id) |   (given name for nation) |
+    | ----------------------------------------|
+    | [INTEGER]   |   [TEXT]                  |
+    | ...         |   ...                     |
+    +-----------------------------------------+
+    ```
+
+    Attributes:
+        column_names(list[str]): A list containing the names of all columns in the Database table, listed in the same order they appear in the SQLite table.
+    """
     
     def __init__(self):
         super().__init__(column_names=["nation_id", "nation_name"])
@@ -46,12 +59,12 @@ class Database():
     """
 
     @classmethod
-    async def gather_table(cls): # -> some sort of list, not sure yet.
+    async def gather_table(cls) -> DatabaseTable:
         """
         A class method that gathers all rows from the Database table and returns them in a list
 
         Returns:
-            list: Some sort of list
+            list(DatabaseTable): A list of Nations representing the Database table in the SQLite database.
         """
         connection = await connect(path)
         database_table = DatabaseTable()
@@ -63,6 +76,8 @@ class Database():
 
                 nation = await Nation.create(nation_id=nation_id, nation_name=nation_name)
                 database_table.append(nation)
+
+        return database_table
 
     # Class method that adds a nation's Discord server to the database
     @classmethod

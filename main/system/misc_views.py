@@ -9,6 +9,14 @@ from base_classes import BaseView
 from database import Database
 
 class NameAskModal(Modal, title="Set nation name for bot"):
+    """
+    This modal is where the server owner submits the name they want to give to their nation in the bot's
+    database. It then adds the nation into the database.
+
+    Attributes:
+        nation_name(discord.ui.Label): The container for the question in which the server owner inputs the name of their nation
+    """
+
     nation_name = Label(text="Nation Name", component=TextInput())
 
     async def on_submit(self, interaction: Interaction) -> None:
@@ -23,6 +31,13 @@ class NameAskModal(Modal, title="Set nation name for bot"):
         await interaction.response.send_message(embed=result_embed)
 
 class NameAskView(BaseView):
+    """
+    This view is where the server owner can submit their nation's name so that their nation can be
+    added to the bot.
+
+    Attributes:
+        embed(discord.Embed): The embed that is shown to server owner along with the view.
+    """
     def __init__(self):
         embed = Embed(title="Before you can use the Universal Election Bot....", color=Color.red())
         embed.add_field(name="You have to set a name for your nation that the bot will use for its operations.",
