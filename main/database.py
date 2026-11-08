@@ -4,7 +4,7 @@ from __future__ import annotations
 from discord import Embed, Color
 from discord.ui import View
 from aiosqlite import Connection, connect, Row
-from typing import Any, NewType, cast
+from typing import Any, NewType, cast, TypeAlias
 
 # From within project
 from system.base_classes import BaseView, BaseTable
@@ -12,31 +12,7 @@ from system.ids import path
 
 from nation_essentials.nation import Nation
 
-class DatabaseTable(BaseTable[Nation]): 
-    """
-    The list representation of a table in the SQLite table "Database" for the bot. It contains
-    Nation objects which each represent a row in the table, and which attribute names correspond
-    to the names of the columns in the table
-    
-    **How the table is set up in the SQLite database:**
-
-    ```
-    DATABASE TABLE
-    +-----------------------------------------+
-    | nation_id   |   nation_name             |
-    | (server id) |   (given name for nation) |
-    | ----------------------------------------|
-    | [INTEGER]   |   [TEXT]                  |
-    | ...         |   ...                     |
-    +-----------------------------------------+
-    ```
-
-    Attributes:
-        column_names(list[str]): A list containing the names of all columns in the Database table, listed in the same order they appear in the SQLite table.
-    """
-    
-    def __init__(self):
-        super().__init__(column_names=["nation_id", "nation_name"])
+type DatabaseTable = (dict[str, list[Any]])
 
 # Container for methods that query and modify nations within the SQLite database
 class Database():
@@ -56,19 +32,18 @@ class Database():
             list(DatabaseTable): A list of Nations representing the Database table in the SQLite database.
         """
         connection = await connect(path)
-        database_table = DatabaseTable()
+        database_table: DatabaseTable = {
+            "nation_id": [],
+            "nation_name": []
+        }
 
         async with connection.execute("SELECT * FROM Database") as cursor:
             async for row in cursor:
                 nation_id: int = row[0]
+                database_table["nation_id"].append(nation_id)
+
                 nation_name: str = row[1]
-
-                print(f"ID: {nation_id}, Name: {nation_name}")
-
-                nation = await Nation.create(nation_id=nation_id, nation_name=nation_name)
-
-                print(f"(from nation obj) ID: {nation.nation_id}, Name: {nation.nation_name}")
-                database_table.append(nation)
+                database_table["nation_name"].append(nation_name)
 
         return database_table
 
@@ -154,12 +129,23 @@ class DatabaseView(BaseView):
         else:
             page_stop = 25 * self.page_number
 
+        field_name = ""
         field_value = ""
 
-        for column in self.database_table.column_names:
-            for i in range(page_start, page_stop):
-                nation = self.database_table[i]
-                field_value += str(nation.__getattribute__(column))
+        for column_name, rows in self.database_table.items():
+            if column_name == "nation_id":
+                field_name = "Nation ID"
+            elif column_name == "nation_name":
+                field_name = "Nation Name"
 
-            self.embed.add_field(name=column, value=field_value, inline=True)
+            for i in range(page_start, page_stop):
+                field_value += f"{rows[i]}\n"
+
+            self.embed.add_field(name=field_name, value=field_value)
+            # For other columns that convert text val into special value, add if statements to convert,
+            # then append. For enums, it won't be neccessary since text is the enum value, maybe...
+            # This is done by checking for specific column name.
+
+            field_name = ""
             field_value = ""
+            
