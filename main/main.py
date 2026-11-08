@@ -76,8 +76,7 @@ async def sync(ctx: Context):
 # MADE VERY SECURE!!!!!!!!). Will be done only in development server
 @bot.tree.command(name="show_nations", description="DEVELOPER ONLY COMMAND!!!!")
 async def show_nations(interaction: Interaction):
-    database_table = await Database.gather_table()
-    view = DatabaseView(database_table)
+    view = DatabaseView()
     await interaction.response.send_message(view=view, embed=view.embed)
 
 # Command that allows any user to see a nation's database within that nation's Discord 

@@ -107,8 +107,7 @@ class Database():
 
 # A view that shows all the nations in the database via an embed in attributes
 class DatabaseView(BaseView):
-    def __init__(self, database_table: DatabaseTable):
-        self.database_table = database_table
+    def __init__(self):
         # Usually I would add a separate int variable to move between columns, but that isnt neccessary here 
         # since there will only be 2 columns, below the mininum amount of inline fields Discord allows in an
         # embed, 3.
@@ -116,23 +115,29 @@ class DatabaseView(BaseView):
         super().__init__(embed=Embed(title="Nation Database (ONLY FOR DEVS)",
                                      description="A table of all nation servers using the Universal Election Bot", 
                                      color=Color.blue()))
-        self.refresh_page()
 
-    def refresh_page(self):
+    @classmethod
+    async def create(cls):
+        database_view = cls()
+        await database_view.refresh_page()
+        return
+
+    async def refresh_page(self):
+        database_table = await Database.gather_table()
         self.embed.clear_fields()
         self.embed.add_field(name=f"Page {self.page_number}", value="", inline=False)
 
         page_start = 25 * (self.page_number-1)
 
-        if len(self.database_table) < 25 * self.page_number:
-            page_stop = len(self.database_table)
+        if len(database_table["nation_id"]) < 25 * self.page_number:
+            page_stop = len(database_table["nation_id"])
         else:
             page_stop = 25 * self.page_number
 
         field_name = ""
         field_value = ""
 
-        for column_name, rows in self.database_table.items():
+        for column_name, rows in database_table.items():
             if column_name == "nation_id":
                 field_name = "Nation ID"
             elif column_name == "nation_name":
