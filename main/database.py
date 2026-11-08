@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 # Outside packages/libraries
-from discord import Embed
+from discord import Embed, Color
 from discord.ui import View
-from aiosqlite import Connection, connect
-from typing import Any, NewType
+from aiosqlite import Connection, connect, Row
+from typing import Any, NewType, cast
 
 # From within project
 from system.base_classes import BaseView, BaseTable
@@ -47,17 +47,6 @@ class Database():
     database attached to the bot.
     """
 
-    """
-    FOR REFERENCE WHEN DEALING WITH Database TABLE!!!
-
-    TABLE SETUP
-
-    nation_id    nation_name
-    (server id)  (given name for nation)
-    ========================
-    [INTEGER]    [TEXT]
-    """
-
     @classmethod
     async def gather_table(cls) -> DatabaseTable:
         """
@@ -74,7 +63,11 @@ class Database():
                 nation_id: int = row[0]
                 nation_name: str = row[1]
 
+                print(f"ID: {nation_id}, Name: {nation_name}")
+
                 nation = await Nation.create(nation_id=nation_id, nation_name=nation_name)
+
+                print(f"(from nation obj) ID: {nation.nation_id}, Name: {nation.nation_name}")
                 database_table.append(nation)
 
         return database_table
@@ -114,7 +107,59 @@ class Database():
                                     )""")
         await connection.close()
 
+        @classmethod
+        async def get_nation(cls, server_id: int) -> Nation:
+            """
+            A class method that uses the server_id to query the Database table for the needed row, then uses
+            column values of the row to make a Nation object.
+    
+            Parameters:
+                server_id(int): The ID of the server being looked for.
+
+            Returns:
+                A Nation object representing the row in the Database table.
+            """
+            connection = connect(path)
+
+            cursor = await connection.execute(f"SELECT * FROM Database WHERE id = {server_id}")
+            row = cast(Row, await cursor.fetchone())
+
+            nation_id: int = row[0]
+            nation_name: str = row[1]
+
+            nation = await Nation.create(nation_id=nation_id, nation_name=nation_name)
+            return nation
+
 # A view that shows all the nations in the database via an embed in attributes
 class DatabaseView(BaseView):
-    def __init__(self, embed: Embed):
-        super().__init__(embed)
+    def __init__(self, database_table: DatabaseTable):
+        self.database_table = database_table
+        # Usually I would add a separate int variable to move between columns, but that isnt neccessary here 
+        # since there will only be 2 columns, below the mininum amount of inline fields Discord allows in an
+        # embed, 3.
+        self.page_number = 1
+        super().__init__(embed=Embed(title="Nation Database (ONLY FOR DEVS)",
+                                     description="A table of all nation servers using the Universal Election Bot", 
+                                     color=Color.blue()))
+        self.refresh_page()
+
+    def refresh_page(self):
+        self.embed.clear_fields()
+        self.embed.add_field(name=f"Page {self.page_number}", value="", inline=False)
+
+        page_start = 25 * (self.page_number-1)
+
+        if len(self.database_table) < 25 * self.page_number:
+            page_stop = len(self.database_table)
+        else:
+            page_stop = 25 * self.page_number
+
+        field_value = ""
+
+        for column in self.database_table.column_names:
+            for i in range(page_start, page_stop):
+                nation = self.database_table[i]
+                field_value += str(nation.__getattribute__(column))
+
+            self.embed.add_field(name=column, value=field_value, inline=True)
+            field_value = ""

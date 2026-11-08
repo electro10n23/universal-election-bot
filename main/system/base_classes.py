@@ -18,5 +18,3 @@ class BaseView(View):
     def __init__(self, embed: Embed):
         super().__init__()
         self.embed = embed
-
-    # MAYBE: add refresh() which generates an embed based on data inputted.

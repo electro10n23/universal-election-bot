@@ -13,7 +13,7 @@ from system.misc_views import NameAskView
 
 from typing import cast
 
-from database import Database
+from database import Database, DatabaseView
 
 bot = AutoShardedBot(command_prefix="!", intents=Intents.all())
 
@@ -51,6 +51,8 @@ async def sync(ctx: Context):
         sync_result_message = gather_command_names(commands)
 
         embed.add_field(name="", value=sync_result_message)
+
+        await ctx.send(embed=embed)
     else:
         embed = ErrorEmbed(title="Cannot sync application commands!", 
                             msg="You do not have permission to sync commands.")
@@ -72,14 +74,16 @@ async def sync(ctx: Context):
 # Command that allows user to see all nation databases within the wider SQLite database. It also provides actions for
 # the user to use for each nation and allows them edit stuff within a nation's database. (ONLY FOR DEVELOPERS, MUST BE
 # MADE VERY SECURE!!!!!!!!). Will be done only in development server
-@bot.tree.command(name="show_nations")
+@bot.tree.command(name="show_nations", description="DEVELOPER ONLY COMMAND!!!!")
 async def show_nations(interaction: Interaction):
-    pass
+    database_table = await Database.gather_table()
+    view = DatabaseView(database_table)
+    await interaction.response.send_message(view=view, embed=view.embed)
 
 # Command that allows any user to see a nation's database within that nation's Discord 
 # server. It also provides actions for the user to do on nation database.
 @bot.tree.command(name="show_database")
-async def show_database(interaction: Interaction):
+async def show_elections(interaction: Interaction):
     pass
 
 with open(r"main\xan_nara\token.txt") as file:
