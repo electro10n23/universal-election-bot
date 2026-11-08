@@ -85,6 +85,10 @@ async def show_nations(interaction: Interaction):
 async def show_elections(interaction: Interaction):
     pass
 
+@bot.tree.command(name="preview_embed")
+async def preview_embed(interaction: Interaction):
+    pass
+
 with open(r"main\xan_nara\token.txt") as file:
     token: str = file.read()
 

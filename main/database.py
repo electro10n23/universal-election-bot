@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 # Outside packages/libraries
-from discord import Embed, Color
-from discord.ui import View
+from discord import Embed, Color, Interaction
+from discord.ui import View, LayoutView, Container, Section, TextDisplay, ActionRow, Button
 from aiosqlite import Connection, connect, Row
 from typing import Any, NewType, cast, TypeAlias
 
@@ -26,10 +26,10 @@ class Database():
     @classmethod
     async def gather_table(cls) -> DatabaseTable:
         """
-        A class method that gathers all rows from the Database table and returns them in a list
+        A class method that gathers all rows from the Database table and returns them in a dictionary
 
         Returns:
-            list(DatabaseTable): A list of Nations representing the Database table in the SQLite database.
+            A DatabaseTable, a dictionary with keys corresponding to column names in the Database table and a list value containing all values in column.
         """
         connection = await connect(path)
         database_table: DatabaseTable = {
@@ -154,4 +154,3 @@ class DatabaseView(BaseView):
 
             field_name = ""
             field_value = ""
-            
