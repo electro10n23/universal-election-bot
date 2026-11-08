@@ -23,7 +23,7 @@ bot = AutoShardedBot(command_prefix="!", intents=Intents.all())
 async def on_guild_join(guild: Guild):
     owner = cast(Member, guild.owner) # Done so line after doesn't error since it would think owner was None
 
-    name_ask_view = NameAskView()
+    name_ask_view = NameAskView(guild_id=guild.id)
     await owner.send(view=name_ask_view, embed=name_ask_view.embed)
 
 # Creates a string from a list of application commands that were just synced.
@@ -52,7 +52,7 @@ async def sync(ctx: Context):
 
         embed.add_field(name="", value=sync_result_message)
     else:
-        embed = ErrorEmbed(title="Cannot sync application commansds!", 
+        embed = ErrorEmbed(title="Cannot sync application commands!", 
                             msg="You do not have permission to sync commands.")
     
         try:

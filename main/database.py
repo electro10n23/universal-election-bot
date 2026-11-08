@@ -92,8 +92,7 @@ class Database():
         """
         connection = await connect(path)
 
-        await connection.execute(f"""INSERT INTO Database (nation_id, nation_name) 
-                            VALUES ({server_id}, {nation_name})""")
+        await connection.execute(f"INSERT INTO Database VALUES ({server_id}, \"{nation_name}\")")
         await connection.commit()
 
         # Election parameters will hold extra setting to customize how a election system operates in
@@ -103,14 +102,14 @@ class Database():
         # MAYBE: election_system holds enum value, which then leads to class for electoral system
         # Ex: gets ElectoralSystemEnum.FPTP, then creates an FPTP() object or uses a method in
         # container class FPTP()
-        await connection.execute(f"""CREATE TABLE IF NOT EXISTS {nation_name}_{server_id}
-                                    (INTEGER election_id NOT NULL UNIQUE,
-                                     TEXT election_name NOT NULL,
-                                     TEXT election_system NOT NULL,
-                                     TEXT election_parameters NOT NULL,
-                                     TEXT run_status NOT NULL,
-                                     TEXT start_date,
-                                     TEXT end_date,
+        await connection.execute(f"""CREATE TABLE IF NOT EXISTS "{nation_name}_{server_id}"
+                                    (election_id INTEGER NOT NULL UNIQUE,
+                                     election_name TEXT NOT NULL,
+                                     election_system TEXT NOT NULL,
+                                     election_parameters TEXT NOT NULL,
+                                     run_status TEXT NOT NULL,
+                                     start_date TEXT,
+                                     end_date TEXT,
                                      PRIMARY KEY("election_id") 
                                     )""")
         await connection.close()
