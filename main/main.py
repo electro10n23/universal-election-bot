@@ -76,14 +76,17 @@ async def sync(ctx: Context):
 # MADE VERY SECURE!!!!!!!!). Will be done only in development server
 @bot.tree.command(name="show_nations", description="DEVELOPER ONLY COMMAND!!!!")
 async def show_nations(interaction: Interaction):
-    database_table = await Database.gather_table()
-    view = DatabaseView(database_table)
+    view = await DatabaseView.create()
     await interaction.response.send_message(view=view, embed=view.embed)
 
 # Command that allows any user to see a nation's database within that nation's Discord 
 # server. It also provides actions for the user to do on nation database.
 @bot.tree.command(name="show_database")
 async def show_elections(interaction: Interaction):
+    pass
+
+@bot.tree.command(name="preview_embed")
+async def preview_embed(interaction: Interaction):
     pass
 
 with open(r"main\xan_nara\token.txt") as file:

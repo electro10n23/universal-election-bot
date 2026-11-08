@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 # Outside packages/libraries
-from discord import Embed, Color
-from discord.ui import View
+from discord import Embed, Color, Interaction
+from discord.ui import View, LayoutView, Container, Section, TextDisplay, ActionRow, Button
 from aiosqlite import Connection, connect, Row
-from typing import Any, NewType, cast
+from typing import Any, NewType, cast, TypeAlias
 
 # From within project
 from system.base_classes import BaseView, BaseTable
@@ -12,31 +12,7 @@ from system.ids import path
 
 from nation_essentials.nation import Nation
 
-class DatabaseTable(BaseTable[Nation]): 
-    """
-    The list representation of a table in the SQLite table "Database" for the bot. It contains
-    Nation objects which each represent a row in the table, and which attribute names correspond
-    to the names of the columns in the table
-    
-    **How the table is set up in the SQLite database:**
-
-    ```
-    DATABASE TABLE
-    +-----------------------------------------+
-    | nation_id   |   nation_name             |
-    | (server id) |   (given name for nation) |
-    | ----------------------------------------|
-    | [INTEGER]   |   [TEXT]                  |
-    | ...         |   ...                     |
-    +-----------------------------------------+
-    ```
-
-    Attributes:
-        column_names(list[str]): A list containing the names of all columns in the Database table, listed in the same order they appear in the SQLite table.
-    """
-    
-    def __init__(self):
-        super().__init__(column_names=["nation_id", "nation_name"])
+type DatabaseTable = (dict[str, list[Any]])
 
 # Container for methods that query and modify nations within the SQLite database
 class Database():
@@ -50,25 +26,24 @@ class Database():
     @classmethod
     async def gather_table(cls) -> DatabaseTable:
         """
-        A class method that gathers all rows from the Database table and returns them in a list
+        A class method that gathers all rows from the Database table and returns them in a dictionary
 
         Returns:
-            list(DatabaseTable): A list of Nations representing the Database table in the SQLite database.
+            A DatabaseTable, a dictionary with keys corresponding to column names in the Database table and a list value containing all values in column.
         """
         connection = await connect(path)
-        database_table = DatabaseTable()
+        database_table: DatabaseTable = {
+            "nation_id": [],
+            "nation_name": []
+        }
 
         async with connection.execute("SELECT * FROM Database") as cursor:
             async for row in cursor:
                 nation_id: int = row[0]
+                database_table["nation_id"].append(nation_id)
+
                 nation_name: str = row[1]
-
-                print(f"ID: {nation_id}, Name: {nation_name}")
-
-                nation = await Nation.create(nation_id=nation_id, nation_name=nation_name)
-
-                print(f"(from nation obj) ID: {nation.nation_id}, Name: {nation.nation_name}")
-                database_table.append(nation)
+                database_table["nation_name"].append(nation_name)
 
         return database_table
 
@@ -132,8 +107,7 @@ class Database():
 
 # A view that shows all the nations in the database via an embed in attributes
 class DatabaseView(BaseView):
-    def __init__(self, database_table: DatabaseTable):
-        self.database_table = database_table
+    def __init__(self):
         # Usually I would add a separate int variable to move between columns, but that isnt neccessary here 
         # since there will only be 2 columns, below the mininum amount of inline fields Discord allows in an
         # embed, 3.
@@ -141,25 +115,42 @@ class DatabaseView(BaseView):
         super().__init__(embed=Embed(title="Nation Database (ONLY FOR DEVS)",
                                      description="A table of all nation servers using the Universal Election Bot", 
                                      color=Color.blue()))
-        self.refresh_page()
 
-    def refresh_page(self):
+    @classmethod
+    async def create(cls):
+        database_view = cls()
+        await database_view.refresh_page()
+        return database_view
+
+    async def refresh_page(self):
+        database_table = await Database.gather_table()
+
         self.embed.clear_fields()
         self.embed.add_field(name=f"Page {self.page_number}", value="", inline=False)
 
         page_start = 25 * (self.page_number-1)
 
-        if len(self.database_table) < 25 * self.page_number:
-            page_stop = len(self.database_table)
+        if len(database_table["nation_id"]) < 25 * self.page_number:
+            page_stop = len(database_table["nation_id"])
         else:
             page_stop = 25 * self.page_number
 
+        field_name = ""
         field_value = ""
 
-        for column in self.database_table.column_names:
-            for i in range(page_start, page_stop):
-                nation = self.database_table[i]
-                field_value += str(nation.__getattribute__(column))
+        for column_name, rows in database_table.items():
+            if column_name == "nation_id":
+                field_name = "Nation ID"
+            elif column_name == "nation_name":
+                field_name = "Nation Name"
 
-            self.embed.add_field(name=column, value=field_value, inline=True)
+            for i in range(page_start, page_stop):
+                field_value += f"{rows[i]}\n"
+
+            self.embed.add_field(name=field_name, value=field_value)
+            # For other columns that convert text val into special value, add if statements to convert,
+            # then append. For enums, it won't be neccessary since text is the enum value, maybe...
+            # This is done by checking for specific column name.
+
+            field_name = ""
             field_value = ""
