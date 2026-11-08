@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 # Imports from packages/libraries.
-from discord import Intents, Embed, Color, Interaction, Guild
+from discord import Intents, Embed, Color, Interaction, Guild, Member
 from discord.app_commands import AppCommand
 from discord.ext.commands import AutoShardedBot, Context
 
@@ -7,12 +9,20 @@ from discord.ext.commands import AutoShardedBot, Context
 from system.misc_embeds import ErrorEmbed
 from system.ids import dev_ids, TEST_SERVER_ID
 from tests.test_embeds import test_sync_error_embed, MismatchError
+from system.misc_views import NameAskView
+
+from typing import cast
+
+from database import Database
 
 bot = AutoShardedBot(command_prefix="!", intents=Intents.all())
 
 @bot.event
 async def on_guild_join(guild: Guild):
-    pass #TO DO: add function that creates Nation object for guild.
+    owner = cast(Member, guild.owner) # Done so line after doesn't error since it would think owner was None
+
+    name_ask_view = NameAskView()
+    await owner.send(view=name_ask_view, embed=name_ask_view.embed)
 
 # Creates a string from a list of application commands that were just synced.
 def gather_command_names(synced_commands: list[AppCommand]) -> str:
@@ -51,6 +61,11 @@ async def sync(ctx: Context):
             for expected_result, actual_result in exception.mismatch_dict.items():
                 mismatched_attributes += f"{expected_result} | {actual_result}\n"
             await ctx.send(content=f"{exception.msg}\n{mismatched_attributes}")
+
+
+# TO DO FOR FUNCTIONS BELOW, add exceptions in SQLITE backend classes and in these to handle when
+# nation hasn't been set up yet (probably just exceptions that pop up when the nation hasn't been
+# found in database.)
 
 # Command that allows user to see all nation databases within the wider SQLite database. It also provides actions for
 # the user to use for each nation and allows them edit stuff within a nation's database. (ONLY FOR DEVELOPERS, MUST BE
