@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from aiosqlite import connect
+
+from system.ids import path
 from system.base_classes import BaseObject
 
 class Nation(BaseObject): 
@@ -11,3 +14,6 @@ class Nation(BaseObject):
     @classmethod
     async def create(cls, *, nation_id: int, nation_name: str) -> Nation:
         return cls(nation_id, nation_name)
+
+    async def add_election(self):
+        pass
