@@ -45,6 +45,8 @@ class Database():
                 nation_name: str = row[1]
                 database_table["nation_name"].append(nation_name)
 
+        await connection.close()
+
         return database_table
 
     # Class method that adds a nation's Discord server to the database
@@ -70,6 +72,8 @@ class Database():
         # MAYBE: election_system holds enum value, which then leads to class for electoral system
         # Ex: gets ElectoralSystemEnum.FPTP, then creates an FPTP() object or uses a method in
         # container class FPTP()
+
+        await connection.close()
         
         @classmethod
         async def get_nation(cls, server_id: int) -> Nation:
@@ -87,6 +91,8 @@ class Database():
 
             cursor = await connection.execute(f"SELECT * FROM Database WHERE id = {server_id}")
             row = cast(Row, await cursor.fetchone())
+
+            await connection.close()
 
             nation_id: int = row[0]
             nation_name: str = row[1]
