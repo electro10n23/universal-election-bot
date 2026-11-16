@@ -75,6 +75,7 @@ class Database():
 
         await connection.close()
 
+    # Class method that gets a specific nation using the ID of the server associated with it.
     @classmethod
     async def get_nation(cls, server_id: int) -> Nation:
         """
@@ -102,7 +103,9 @@ class Database():
             return nation
         else:
             raise NationNotFound(server_id)
-        
+
+# This modal takes in the ID of a specific server and then gives it to the .get_nation() method to get
+# the desired nation.
 class GetNationModal(Modal, title="Enter nation server ID"):
     inputted_id = Label(text="Server ID", component=TextInput())
     async def on_submit(self, interaction: Interaction) -> None:
