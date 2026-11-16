@@ -18,3 +18,8 @@ class BaseView(View):
     def __init__(self, embed: Embed):
         super().__init__()
         self.embed = embed
+
+class ObjectNotFound(ValueError):
+    def __init__(self, msg) -> None:
+        self.msg = msg
+        super().__init__(msg)

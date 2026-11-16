@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 # Outside packages/libraries
-from discord import Embed, Color, Interaction
-from discord.ui import View, LayoutView, Container, Section, TextDisplay, ActionRow, Button
+from discord import Embed, Color, Interaction, Guild
+from discord.ui import View, LayoutView, Container, Section, TextDisplay, ActionRow, Button, button, Modal
 from aiosqlite import Connection, connect, Row
 from typing import Any, NewType, cast, TypeAlias
 
@@ -10,7 +10,7 @@ from typing import Any, NewType, cast, TypeAlias
 from system.base_classes import BaseView, BaseTable
 from system.ids import path
 
-from nation_essentials.nation import Nation
+from nation_essentials.nation import Nation, NationView, NationNotFound
 
 type DatabaseTable = (dict[str, list[Any]])
 
@@ -74,24 +74,25 @@ class Database():
         # container class FPTP()
 
         await connection.close()
-        
-        @classmethod
-        async def get_nation(cls, server_id: int) -> Nation:
-            """
-            A class method that uses the server_id to query the Database table for the needed row, then uses
-            column values of the row to make a Nation object.
-    
-            Parameters:
-                server_id(int): The ID of the server being looked for.
 
-            Returns:
-                A Nation object representing the row in the Database table.
-            """
-            connection = connect(path)
+    @classmethod
+    async def get_nation(cls, server_id: int) -> Nation:
+        """
+        A class method that uses the server_id to query the Database table for the needed row, then uses
+        column values of the row to make a Nation object.
 
-            cursor = await connection.execute(f"SELECT * FROM Database WHERE id = {server_id}")
-            row = cast(Row, await cursor.fetchone())
+        Parameters:
+            server_id(int): The ID of the server being looked for.
 
+        Returns:
+            A Nation object representing the row in the Database table.
+        """
+        connection = connect(path)
+
+        cursor = await connection.execute(f"SELECT * FROM Database WHERE id = {server_id}")
+        row = await cursor.fetchone()
+
+        if row != None:
             await connection.close()
 
             nation_id: int = row[0]
@@ -99,7 +100,16 @@ class Database():
 
             nation = await Nation.create(nation_id=nation_id, nation_name=nation_name)
             return nation
-
+        else:
+            raise NationNotFound(server_id)
+        
+class GetNationModal(Modal, title="Enter nation server ID"):
+    async def on_submit(self, interaction: Interaction) -> None:
+        guild = cast(Guild, interaction.guild)
+        nation = await Database.get_nation(server_id=guild.id)
+        view = NationView(nation)
+        await interaction.response.send_message()
+    
 # A view that shows all the nations in the database via an embed in attributes
 class DatabaseView(BaseView):
     def __init__(self):
@@ -116,6 +126,10 @@ class DatabaseView(BaseView):
         database_view = cls()
         await database_view.refresh_page()
         return database_view
+
+    @button(label="Select Nation")
+    async def select_nation(self, interaction: Interaction, button: Button):
+        await interaction.response.send_modal(GetNationModal())
 
     async def refresh_page(self):
         database_table = await Database.gather_table()
