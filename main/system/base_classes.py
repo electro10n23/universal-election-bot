@@ -1,20 +1,26 @@
 from discord import Embed
 from discord.ui import View
 
+from typing import Any
+
 # The base class for all objects
 class BaseObject():
     pass
 
-# The base table exists to represent a SQLite table instead of a 2D list because all of the info from 
-# each row of a table will be put into its own object instead of being kept as just a list, so there's
-# no need to have that extra overhead. However, we need to know the names of each column in the table
-# to get an attribute dynamically with __getattribute__(), so thats why column names exist.
-class BaseTable[O: BaseObject](list[O]):
-    def __init__(self, column_names: list[str]):
-        self.column_names = column_names
+# Table is a dictionary with string keys and list values that is used only to parse the contents of
+# a table in the SQLite database to a format that can be put into a embed and shown to the user. The 
+# string keys contains the names of the columns in the SQLite database. The list value the key
+# corresponds to contains the value each row in a table has in the column the key represents.
+type Table = (dict[str, list[Any]])
 
-# A view that holds an embed
+# A view that holds an embed.
 class BaseView(View):
     def __init__(self, embed: Embed):
         super().__init__()
         self.embed = embed
+
+# An exception that is raised when an object in the bot is not found in the SQLite database.
+class ObjectNotFound(ValueError):
+    def __init__(self, msg) -> None:
+        self.msg = msg
+        super().__init__(msg)

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 # Outside packages/libraries
-from discord import Embed, Color, Interaction
-from discord.ui import View, LayoutView, Container, Section, TextDisplay, ActionRow, Button
+from discord import Embed, Color, Interaction, Guild
+from discord.ui import View, LayoutView, Container, Section, TextDisplay, ActionRow, Button, button, Modal, Label, TextInput
 from aiosqlite import Connection, connect, Row
 from typing import Any, NewType, cast, TypeAlias
 
 # From within project
-from system.base_classes import BaseView, BaseTable
+from system.base_classes import BaseView, Table
 from system.ids import path
 
-from nation_essentials.nation import Nation
+from nation_essentials.nation import Nation, NationView, NationNotFound
 
 type DatabaseTable = (dict[str, list[Any]])
 
@@ -24,7 +24,7 @@ class Database():
     """
 
     @classmethod
-    async def gather_table(cls) -> DatabaseTable:
+    async def gather_table(cls) -> Table:
         """
         A class method that gathers all rows from the Database table and returns them in a dictionary
 
@@ -32,7 +32,7 @@ class Database():
             A DatabaseTable, a dictionary with keys corresponding to column names in the Database table and a list value containing all values in column.
         """
         connection = await connect(path)
-        database_table: DatabaseTable = {
+        database_table: Table = {
             "nation_id": [],
             "nation_name": []
         }
@@ -74,24 +74,26 @@ class Database():
         # container class FPTP()
 
         await connection.close()
-        
-        @classmethod
-        async def get_nation(cls, server_id: int) -> Nation:
-            """
-            A class method that uses the server_id to query the Database table for the needed row, then uses
-            column values of the row to make a Nation object.
-    
-            Parameters:
-                server_id(int): The ID of the server being looked for.
 
-            Returns:
-                A Nation object representing the row in the Database table.
-            """
-            connection = connect(path)
+    # Class method that gets a specific nation using the ID of the server associated with it.
+    @classmethod
+    async def get_nation(cls, server_id: int) -> Nation:
+        """
+        A class method that uses the server_id to query the Database table for the needed row, then uses
+        column values of the row to make a Nation object.
 
-            cursor = await connection.execute(f"SELECT * FROM Database WHERE id = {server_id}")
-            row = cast(Row, await cursor.fetchone())
+        Parameters:
+            server_id(int): The ID of the server being looked for.
 
+        Returns:
+            A Nation object representing the row in the Database table.
+        """
+        connection = await connect(path)
+
+        cursor = await connection.execute(f"SELECT * FROM Database WHERE nation_id = {server_id}")
+        row = await cursor.fetchone()
+
+        if row != None:
             await connection.close()
 
             nation_id: int = row[0]
@@ -99,7 +101,21 @@ class Database():
 
             nation = await Nation.create(nation_id=nation_id, nation_name=nation_name)
             return nation
+        else:
+            raise NationNotFound(server_id)
 
+# This modal takes in the ID of a specific server and then gives it to the .get_nation() method to get
+# the desired nation.
+class GetNationModal(Modal, title="Enter nation server ID"):
+    inputted_id = Label(text="Server ID", component=TextInput())
+    async def on_submit(self, interaction: Interaction) -> None:
+        text_input = cast(TextInput, self.inputted_id.component)
+        server_id = int(text_input.value)
+        
+        nation = await Database.get_nation(server_id=server_id)
+        view = NationView(nation)
+        await interaction.response.send_message(view=view, embed=view.embed)
+    
 # A view that shows all the nations in the database via an embed in attributes
 class DatabaseView(BaseView):
     def __init__(self):
@@ -116,6 +132,10 @@ class DatabaseView(BaseView):
         database_view = cls()
         await database_view.refresh_page()
         return database_view
+
+    @button(label="Select Nation")
+    async def select_nation(self, interaction: Interaction, button: Button):
+        await interaction.response.send_modal(GetNationModal())
 
     async def refresh_page(self):
         database_table = await Database.gather_table()
